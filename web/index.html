@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Durood Sharif with Audio - Islamic Prayers and Blessings">
+    <meta name="theme-color" content="#2c5f41">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Durood Sharif">
+    <title>Durood Sharif with Audio</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./assets/images/app_icon.png">
+    <link rel="icon" type="image/png" href="./assets/images/app_icon.png">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="app-title">
+                    <span class="title-icon">📿</span>
+                    Durood Sharif
+                </h1>
+                <p class="app-subtitle">Islamic Prayers and Blessings with Audio</p>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="images">
+                <span class="tab-icon">🖼️</span>
+                Images
+            </button>
+            <button class="tab-btn" data-tab="audio">
+                <span class="tab-icon">🎵</span>
+                Audio
+            </button>
+        </div>
+
+        <!-- Images Tab Content -->
+        <div class="tab-content active" id="images-tab">
+            <div class="gallery-container">
+                <div class="gallery-grid" id="gallery-grid">
+                    <!-- Images will be dynamically loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Tab Content -->
+        <div class="tab-content" id="audio-tab">
+            <div class="audio-container">
+                <div class="audio-list" id="audio-list">
+                    <!-- Audio items will be dynamically loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Viewer Modal -->
+        <div class="modal" id="image-modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <button class="modal-nav prev" id="prev-image">‹</button>
+                <button class="modal-nav next" id="next-image">›</button>
+                <div class="modal-image-wrapper">
+                    <img class="modal-image" id="modal-image" src="" alt="Durood Sharif">
+                    <button class="modal-play-btn" id="modal-play-btn" title="Play Audio">
+                        <span class="play-icon">▶</span>
+                    </button>
+                </div>
+                <div class="image-counter">
+                    <span id="current-image-num">1</span> / <span id="total-images">43</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Player -->
+        <div class="audio-player" id="audio-player">
+            <div class="player-content">
+                <div class="player-info">
+                    <div class="player-title" id="player-title">Select an audio to play</div>
+                    <div class="player-time">
+                        <span id="current-time">0:00</span> / <span id="total-time">0:00</span>
+                    </div>
+                </div>
+                <div class="player-controls">
+                    <button class="player-btn play-pause" id="play-pause" title="Play/Stop">▶</button>
+                </div>
+                <audio id="audio-element" preload="metadata"></audio>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+

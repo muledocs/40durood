@@ -175,6 +175,9 @@ function convertToArabic(num) {
 async function loadImageAudioMapping() {
     try {
         const response = await fetch(CONFIG.mappingFile);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         imageAudioMapping = data.mapping;
         console.log('Image-Audio mapping loaded:', imageAudioMapping.length, 'items');

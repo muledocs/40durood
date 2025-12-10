@@ -3,8 +3,12 @@ const CONFIG = {
     imagesPath: 'assets/images/',
     audioPath: 'assets/audio/',
     totalImages: 43,
-    totalAudio: 38
+    totalAudio: 38,
+    mappingFile: 'image-audio-mapping.json'
 };
+
+// Image to Audio Mapping (will be loaded from JSON)
+let imageAudioMapping = null;
 
 // State
 let currentImageIndex = 0;
@@ -37,12 +41,15 @@ const modalPlayBtn = document.getElementById('modal-play-btn');
 // Swipe detection (touch and mouse)
 let touchStartX = 0;
 let touchEndX = 0;
+let touchStartY = 0;
+let touchEndY = 0;
 let mouseStartX = 0;
 let mouseEndX = 0;
 let isDragging = false;
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadImageAudioMapping();
     initializeImages();
     initializeAudio();
     setupEventListeners();
@@ -158,6 +165,35 @@ function showIOSInstallInstructions() {
     }, 10000);
 }
 
+// Convert number to Arabic numerals
+function convertToArabic(num) {
+    const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return num.toString().split('').map(digit => arabicNumerals[parseInt(digit)]).join('');
+}
+
+// Load Image-Audio Mapping
+async function loadImageAudioMapping() {
+    try {
+        const response = await fetch(CONFIG.mappingFile);
+        const data = await response.json();
+        imageAudioMapping = data.mapping;
+        console.log('Image-Audio mapping loaded:', imageAudioMapping.length, 'items');
+    } catch (error) {
+        console.warn('Could not load mapping file, using default mapping:', error);
+        // Create default mapping (skip first 3 images)
+        imageAudioMapping = [];
+        for (let i = 1; i <= CONFIG.totalImages; i++) {
+            imageAudioMapping.push({
+                fileIndex: i,
+                imageNumber: i > 3 ? i - 3 : i,
+                arabicNumber: convertToArabic(i > 3 ? i - 3 : i),
+                audioFile: i > 3 ? `${String(i - 3).padStart(2, '0')}.mp3` : null,
+                hasAudio: i > 3
+            });
+        }
+    }
+}
+
 // Create install button
 function createInstallButton() {
     const button = document.createElement('button');
@@ -192,9 +228,17 @@ function hideInstallButton(button) {
 function initializeImages() {
     images = [];
     for (let i = 1; i <= CONFIG.totalImages; i++) {
+        // Find mapping by fileIndex (screen_1.png = fileIndex 1, screen_2.png = fileIndex 2, etc.)
+        const mapping = imageAudioMapping ? imageAudioMapping.find(m => m.fileIndex === i) : null;
         images.push({
-            number: i,
-            src: `${CONFIG.imagesPath}screen_${i}.png`
+            fileIndex: i, // File number (screen_1.png, screen_2.png, etc.)
+            number: mapping ? mapping.imageNumber : (i > 3 ? i - 3 : i), // Actual Durood number from image
+            src: `${CONFIG.imagesPath}screen_${i}.png`,
+            arabicNumber: mapping ? mapping.arabicNumber : convertToArabic(mapping ? mapping.imageNumber : (i > 3 ? i - 3 : i)),
+            audioFile: mapping ? mapping.audioFile : null,
+            hasAudio: mapping ? mapping.hasAudio : (i > 3),
+            containsMultiple: mapping ? (mapping.containsMultiple || false) : false,
+            numbers: mapping && mapping.numbers ? mapping.numbers : null
         });
     }
     renderGallery();
@@ -208,17 +252,17 @@ function renderGallery() {
         item.className = 'gallery-item';
         item.setAttribute('data-image-index', index);
         
-        // Only show play button for images 4 and above
-        const hasAudio = image.number > 3;
+        // Check if image has audio from mapping
+        const hasAudio = image.hasAudio !== undefined ? image.hasAudio : (image.fileIndex > 3);
         const playButtonHtml = hasAudio ? `
             <button class="gallery-play-btn" data-image-index="${index}" title="Play Audio">
                 <span class="play-icon">▶</span>
             </button>
         ` : '';
         
+        // No numbers displayed on images
         item.innerHTML = `
             <img src="${image.src}" alt="Durood Sharif ${image.number}" loading="lazy">
-            <div class="item-number">${image.number}</div>
             ${playButtonHtml}
         `;
         
@@ -229,7 +273,7 @@ function renderGallery() {
             const playBtn = item.querySelector('.gallery-play-btn');
             playBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                playAudioForImage(image.number);
+                playAudioForImage(image.fileIndex);
             });
         }
         
@@ -262,29 +306,46 @@ function updateModalImage() {
     // Modal functionality removed
 }
 
-// Get audio index from image number
-function getAudioIndexForImage(imageNumber) {
-    // Skip first 3 images - no audio for images 1, 2, 3
-    // Image 4 -> Audio 01.mp3 (index 0)
-    // Image 5 -> Audio 02.mp3 (index 1)
-    // Image 6 -> Audio 03.mp3 (index 2)
-    // etc.
-    if (imageNumber <= 3) {
-        return -1; // No audio for first 3 images
+// Get audio index from image fileIndex using mapping
+function getAudioIndexForImage(fileIndex) {
+    if (!imageAudioMapping) {
+        // Fallback to old logic if mapping not loaded
+        if (fileIndex <= 3) {
+            return -1;
+        }
+        const audioNumber = fileIndex - 3;
+        const audioIndex = audioFiles.findIndex(audio => audio.number === audioNumber);
+        return audioIndex >= 0 ? audioIndex : -1;
     }
     
-    // Calculate which audio file corresponds to this image
-    // Image 4 -> audio number 1, Image 5 -> audio number 2, etc.
-    const audioNumber = imageNumber - 3;
-    const audioIndex = audioFiles.findIndex(audio => audio.number === audioNumber);
+    // Find mapping for this image file (by fileIndex)
+    const mapping = imageAudioMapping.find(m => m.fileIndex === fileIndex);
+    if (!mapping || !mapping.hasAudio || !mapping.audioFile) {
+        return -1;
+    }
+    
+    // Find audio file by filename
+    const audioIndex = audioFiles.findIndex(audio => {
+        // Extract filename from audio src
+        const audioFilename = audio.src.split('/').pop();
+        return audioFilename === mapping.audioFile;
+    });
+    
     return audioIndex >= 0 ? audioIndex : -1;
 }
 
-// Play audio for specific image
-function playAudioForImage(imageNumber) {
-    const audioIndex = getAudioIndexForImage(imageNumber);
+// Play audio for specific image (by fileIndex)
+function playAudioForImage(fileIndex) {
+    const audioIndex = getAudioIndexForImage(fileIndex);
     if (audioIndex >= 0) {
-        currentPlayingImageNumber = imageNumber; // Store the image number
+        // Get the correct Durood number from mapping
+        const mapping = imageAudioMapping ? imageAudioMapping.find(m => m.fileIndex === fileIndex) : null;
+        if (mapping) {
+            currentPlayingImageNumber = mapping.imageNumber; // Use imageNumber from mapping
+        } else {
+            const image = images.find(img => img.fileIndex === fileIndex);
+            currentPlayingImageNumber = image ? image.number : fileIndex;
+        }
         playAudio(audioIndex);
         updateGalleryPlayButtons();
     }
@@ -299,7 +360,7 @@ function updateModalPlayButton() {
 function updateGalleryPlayButtons() {
     document.querySelectorAll('.gallery-play-btn').forEach((btn, index) => {
         const image = images[index];
-        const audioIndex = getAudioIndexForImage(image.number);
+        const audioIndex = getAudioIndexForImage(image.fileIndex);
         
         if (currentAudioIndex === audioIndex && isPlaying) {
             btn.classList.add('playing');
@@ -456,7 +517,7 @@ function updatePlayPauseButton() {
 // Update Audio Player UI
 function updateAudioPlayerUI() {
     if (currentAudioIndex >= 0 && currentPlayingImageNumber > 0) {
-        // Show image number instead of audio number
+        // Show English number from image
         playerTitle.textContent = `Durood ${currentPlayingImageNumber}`;
     } else if (currentAudioIndex >= 0) {
         // Fallback to audio name if image number not available
@@ -497,19 +558,29 @@ let isSwiping = false;
 
 function handleTouchStart(e) {
     touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
     isSwiping = false;
 }
 
 function handleTouchMove(e) {
     // Prevent default scrolling during swipe to reduce shakiness
-    const diff = Math.abs(touchStartX - e.changedTouches[0].screenX);
-    if (diff > 10) {
+    const currentX = e.changedTouches[0].screenX;
+    const currentY = e.changedTouches[0].screenY;
+    const diffX = Math.abs(touchStartX - currentX);
+    const diffY = Math.abs(touchStartY - currentY);
+    
+    if (diffX > 10) {
         isSwiping = true;
+        // Prevent scrolling when swiping horizontally (more horizontal than vertical)
+        if (diffX > diffY) {
+            e.preventDefault();
+        }
     }
 }
 
 function handleTouchEnd(e) {
     touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
     if (isSwiping) {
         handleSwipe();
     }
@@ -710,7 +781,7 @@ function setupEventListeners() {
     if (galleryContainer) {
         // Touch events for mobile
         galleryContainer.addEventListener('touchstart', handleTouchStart, { passive: true });
-        galleryContainer.addEventListener('touchmove', handleTouchMove, { passive: true });
+        galleryContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
         galleryContainer.addEventListener('touchend', handleTouchEnd, { passive: true });
         
         // Mouse events for desktop drag

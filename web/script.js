@@ -49,13 +49,21 @@ let isDragging = false;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadImageAudioMapping();
+    try {
+        await loadImageAudioMapping();
+    } catch (error) {
+        console.error('Error loading mapping:', error);
+    }
+    
+    // Initialize images regardless of mapping load status
     initializeImages();
     initializeAudio();
     setupEventListeners();
     setupGalleryScrollDetection();
     setupPWA();
-    totalImages.textContent = CONFIG.totalImages;
+    if (totalImages) {
+        totalImages.textContent = CONFIG.totalImages;
+    }
 });
 
 // Setup Progressive Web App
@@ -249,6 +257,10 @@ function initializeImages() {
 
 // Render Gallery
 function renderGallery() {
+    if (!galleryGrid) {
+        console.error('Gallery grid element not found');
+        return;
+    }
     galleryGrid.innerHTML = '';
     images.forEach((image, index) => {
         const item = document.createElement('div');

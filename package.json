@@ -1,0 +1,25 @@
+{
+  "name": "durood-sharif",
+  "version": "1.0.0",
+  "description": "Durood Sharif with Audio - Islamic Prayers and Blessings",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'No build step needed for static site'",
+    "android": "npx cap open android",
+    "sync": "npx cap sync",
+    "sync:android": "npx cap sync android"
+  },
+  "keywords": [
+    "islamic",
+    "durood",
+    "prayers",
+    "audio"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  }
+}
